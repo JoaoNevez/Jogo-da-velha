@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jogo da Velha — Tic-Tac-Toe</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card: #171923;
+      --text: #e6e6e6;
+      --muted: #9aa0aa;
+      --accent: #6ee7b7;
+      --x: #60a5fa;
+      --o: #f472b6;
+      --win: #34d399;
+      --shadow: 0 12px 30px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu;
+      background: radial-gradient(1000px 600px at 50% -10%, #1a2032 0%, var(--bg) 60%);
+      color: var(--text); min-height: 100vh; display: grid; place-items: center; padding: 24px;
+    }
+
+    .app {
+      width: 100%; max-width: 760px; display: grid; gap: 18px;
+    }
+
+    header {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      background: color-mix(in oklab, var(--card) 92%, black 8%);
+      padding: 16px 18px; border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .title { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 42px; height: 42px; display:grid; place-items:center; border-radius: 14px;
+      background: linear-gradient(135deg, #1f2937, #0f172a);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), var(--shadow);
+      font-weight: 800; letter-spacing: .5px;
+    }
+    .title h1 { font-size: 1.15rem; margin: 0; }
+    .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .switch, .btn {
+      background: #212636; color: var(--text); border: 1px solid rgba(255,255,255,.06);
+      border-radius: 12px; padding: 10px 12px; cursor: pointer; font-weight: 600;
+      transition: transform .06s ease, background .2s ease;
+    }
+    .switch:has(input:checked) { outline: 2px solid var(--accent); }
+    .switch input { margin-right: 8px; accent-color: var(--accent); }
+    .btn:hover { background: #262c40; }
+    .btn:active { transform: translateY(1px); }
+
+    .status {
+      background: color-mix(in oklab, var(--card) 88%, black 12%);
+      padding: 14px 16px; border-radius: var(--radius); display:flex; justify-content:space-between; gap:12px; box-shadow: var(--shadow);
+      font-weight: 600; color: var(--muted);
+    }
+    .status strong { color: var(--text); }
+
+    .board {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+      background: transparent;
+    }
+    .cell {
+      aspect-ratio: 1 / 1; border-radius: 16px; display:grid; place-items:center;
+      font-size: clamp(40px, 10vw, 64px); font-weight: 800; user-select: none; cursor: pointer;
+      background: linear-gradient(180deg, #1a2133, #15192a); border: 1px solid rgba(255,255,255,.08);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), var(--shadow);
+      transition: transform .06s ease, background .2s ease, border-color .2s ease;
+    }
+    .cell:hover { background: #1c2340; }
+    .cell.x { color: var(--x); text-shadow: 0 0 20px color-mix(in oklab, var(--x) 90%, transparent); }
+    .cell.o { color: var(--o); text-shadow: 0 0 20px color-mix(in oklab, var(--o) 90%, transparent); }
+    .cell.win { outline: 3px solid var(--win); }
+
+    .score {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    }
+    .score .card {
+      background: color-mix(in oklab, var(--card) 92%, black 8%); border: 1px solid rgba(255,255,255,.06);
+      border-radius: var(--radius); padding: 14px; text-align: center; box-shadow: var(--shadow);
+    }
+    .card h3 { margin: 0 0 8px; font-size: .9rem; color: var(--muted); font-weight: 700; letter-spacing: .3px; }
+    .card .num { font-size: 1.6rem; font-weight: 900; }
+
+    footer {
+      text-align: center; color: var(--muted); font-size: .9rem; margin-top: 4px;
+    }
+    .link { color: var(--accent); text-decoration: none; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="title">
+        <div class="logo">XO</div>
+        <h1>Jogo da Velha</h1>
+      </div>
+      <div class="controls">
+        <label class="switch">
+          <input id="cpuToggle" type="checkbox" />
+          vs CPU (imbatível)
+        </label>
+        <button id="resetBtn" class="btn">🔄 Reiniciar partida</button>
+        <button id="clearScoreBtn" class="btn">🧹 Limpar placar</button>
+      </div>
+    </header>
+
+    <div class="status">
+      <div>Vez de: <strong id="turnLabel">X</strong></div>
+      <div id="gameState">Em andamento…</div>
+    </div>
+
+    <section class="board" id="board" aria-label="Tabuleiro do jogo">
+      <!-- células criadas via JS -->
+    </section>
+
+    <section class="score">
+      <div class="card"><h3>Vitórias X</h3><div class="num" id="scoreX">0</div></div>
+      <div class="card"><h3>Empates</h3><div class="num" id="scoreDraw">0</div></div>
+      <div class="card"><h3>Vitórias O</h3><div class="num" id="scoreO">0</div></div>
+    </section>
+
+    <footer>
+      Feito em HTML, CSS e JavaScript. Salve como <code>index.html</code> e abra no navegador. |
+      <a class="link" href="https://github.com/new" target="_blank" rel="noreferrer">Criar repositório no GitHub</a>
+    </footer>
+  </main>
+
+  <script>
+    // ---------- Estado ----------
+    const boardEl = document.getElementById('board');
+    const turnLabel = document.getElementById('turnLabel');
+    const gameStateEl = document.getElementById('gameState');
+    const cpuToggle = document.getElementById('cpuToggle');
+    const resetBtn = document.getElementById('resetBtn');
+    const clearScoreBtn = document.getElementById('clearScoreBtn');
+
+    const scoreEls = {
+      X: document.getElementById('scoreX'),
+      O: document.getElementById('scoreO'),
+      D: document.getElementById('scoreDraw'),
+    };
+
+    let board = Array(9).fill(null); // índices 0..8
+    let current = 'X';
+    let active = true;
+
+    const wins = [
+      [0,1,2],[3,4,5],[6,7,8], // linhas
+      [0,3,6],[1,4,7],[2,5,8], // colunas
+      [0,4,8],[2,4,6]          // diagonais
+    ];
+
+    // ---------- Placar (localStorage) ----------
+    const SCORE_KEY = 'ttt_score_v1';
+    function loadScore() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(SCORE_KEY)) || { X:0, O:0, D:0 };
+        scoreEls.X.textContent = saved.X;
+        scoreEls.O.textContent = saved.O;
+        scoreEls.D.textContent = saved.D;
+      } catch { /* ignore */ }
+    }
+    function saveScore() {
+      const data = {
+        X: Number(scoreEls.X.textContent),
+        O: Number(scoreEls.O.textContent),
+        D: Number(scoreEls.D.textContent)
+      };
+      localStorage.setItem(SCORE_KEY, JSON.stringify(data));
+    }
+    function incScore(key) {
+      scoreEls[key].textContent = Number(scoreEls[key].textContent) + 1;
+      saveScore();
+    }
+
+    // ---------- UI ----------
+    function drawBoard() {
+      boardEl.innerHTML = '';
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement('button');
+        cell.className = 'cell';
+        cell.setAttribute('aria-label', `célula ${i+1}`);
+        cell.dataset.idx = i;
+        cell.textContent = board[i] ?? '';
+        if (board[i]) cell.classList.add(board[i].toLowerCase());
+        cell.addEventListener('click', onCellClick);
+        boardEl.appendChild(cell);
+      }
+    }
+
+    function setStatus(text) { gameStateEl.textContent = text; }
+    function setTurn(player) { turnLabel.textContent = player; }
+
+    function highlightWin(line) {
+      line.forEach(i => boardEl.children[i].classList.add('win'));
+    }
+
+    // ---------- Regras ----------
+    function winner(b=board) {
+      for (const line of wins) {
+        const [a,b1,c] = line;
+        if (b[a] && b[a] === b[b1] && b[a] === b[c]) return { player: b[a], line };
+      }
+      if (b.every(v => v)) return { player: 'D', line: null }; // draw
+      return null;
+    }
+
+    function play(idx, player) {
+      if (!active || board[idx]) return false;
+      board[idx] = player;
+      update();
+      return true;
+    }
+
+    function update() {
+      drawBoard();
+      const res = winner();
+      if (res) {
+        active = false;
+        if (res.player === 'D') {
+          setStatus('Empate!');
+          incScore('D');
+        } else {
+          setStatus(`Vitória de ${res.player}!`);
+          incScore(res.player);
+          highlightWin(res.line);
+        }
+      } else {
+        current = current === 'X' ? 'O' : 'X';
+        setTurn(current);
+        setStatus('Em andamento…');
+        // Jogada da CPU (O) se ativado e for a vez dela
+        if (cpuToggle.checked && active && current === 'O') {
+          setTimeout(cpuMove, 150);
+        }
+      }
+    }
+
+    // ---------- CPU (minimax imbatível) ----------
+    function cpuMove() {
+      const idx = bestMove(board, 'O');
+      play(idx, 'O');
+    }
+
+    function bestMove(b, ai) {
+      let bestScore = -Infinity;
+      let move = -1;
+      for (let i = 0; i < 9; i++) {
+        if (!b[i]) {
+          b[i] = ai;
+          const score = minimax(b, 0, false, ai, opponent(ai));
+          b[i] = null;
+          if (score > bestScore) { bestScore = score; move = i; }
+        }
+      }
+      return move;
+    }
+
+    function minimax(b, depth, isMax, ai, human) {
+      const res = winner(b);
+      if (res) {
+        if (res.player === ai) return 10 - depth;
+        if (res.player === human) return depth - 10;
+        return 0; // empate
+      }
+      if (isMax) {
+        let best = -Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (!b[i]) {
+            b[i] = ai;
+            best = Math.max(best, minimax(b, depth+1, false, ai, human));
+            b[i] = null;
+          }
+        }
+        return best;
+      } else {
+        let best = Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (!b[i]) {
+            b[i] = human;
+            best = Math.min(best, minimax(b, depth+1, true, ai, human));
+            b[i] = null;
+          }
+        }
+        return best;
+      }
+    }
+
+    function opponent(p) { return p === 'X' ? 'O' : 'X'; }
+
+    // ---------- Eventos ----------
+    function onCellClick(e) {
+      const i = Number(e.currentTarget.dataset.idx);
+      if (!active || board[i]) return;
+      if (cpuToggle.checked) {
+        // Humano é X, CPU é O
+        if (current !== 'X') return; // evita clique fora de turno
+        play(i, 'X');
+      } else {
+        play(i, current);
+      }
+    }
+
+    function resetGame(startWith='X') {
+      board = Array(9).fill(null);
+      current = startWith;
+      active = true;
+      setTurn(current);
+      setStatus('Em andamento…');
+      drawBoard();
+      if (cpuToggle.checked && current === 'O') {
+        setTimeout(cpuMove, 200);
+      }
+    }
+
+    resetBtn.addEventListener('click', () => {
+      // alterna quem começa a cada reset
+      resetGame(opponent(current));
+    });
+
+    clearScoreBtn.addEventListener('click', () => {
+      scoreEls.X.textContent = 0;
+      scoreEls.O.textContent = 0;
+      scoreEls.D.textContent = 0;
+      saveScore();
+    });
+
+    cpuToggle.addEventListener('change', () => {
+      resetGame('X'); // ao alternar modo, reinicia
+    });
+
+    // ---------- Boot ----------
+    loadScore();
+    resetGame('X');
+  </script>
+</body>
+</html>
